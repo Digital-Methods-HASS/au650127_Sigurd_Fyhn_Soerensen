@@ -1,0 +1,69 @@
+---
+title: "check"
+author: "Sigurd Fyhn Sørensen"
+date: "2022-10-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1
+Define a defensive function that calculates the Gross Domestic Product of a nation from the data available in the gapminder dataset. You can use the population and GDPpercapita columns for it. Using that function, calculate the GDP of Denmark in the following years: 1967, 1977, 1987, 1997, 2007, and 2017.
+```{r}
+library(gapminder)
+library(tidyverse)
+df <- gapminder::gapminder
+
+GDP_func <- function(pop, GDPpercap){
+  stopifnot(is.numeric(pop))
+  stopifnot(is.numeric(GDPpercap))
+    
+  GDP <- pop * GDPpercap
+  
+  if (sum(is.na(GDP))> 0){ warning("Some GDP values returned NA")}
+  if (sum(GDP <= 0)> 0){ warning("GDP can't be negative check your the level of Population & GDP Per Capita")}
+    
+    return(GDP)
+  
+}
+
+df <- df %>% 
+  mutate(GDP = GDP_func(df$pop, df$gdpPercap))
+
+
+df %>% 
+  filter(country == "Denmark" & year %in% c( 1967, 1977, 1987, 1997, 2007,2017))
+
+```
+
+# 2
+Write a script that loops over each country in the gapminder dataset, tests whether the country starts with a ‘B’ , and prints out whether the life expectancy is smaller than 50, between 50 and 70, or greater than 70. (Hint: remember the grepl function, and review the Control Flow tutorial)
+
+```{r}
+df_unique <- df %>% 
+  distinct(country)
+
+data.frame(Country = df$country , year = df$year, 
+           Beings_with_b = grepl(df$country, pattern = "^B"),
+           Life_exp_bin = if_else(df$lifeExp > 70, ">70",if_else(df$lifeExp < 50, "<50", "50-70")))
+```
+
+
+# 3 
+Challenge/Optional: Write a script that loops over each country in the gapminder dataset, tests whether the country starts with a ‘M’ and graphs life expectancy against time (using plot() function) as a line graph if the mean life expectancy is under 50 years.
+```{r}
+df %>% 
+  filter(grepl(country, pattern = "^M") == T) %>%
+  group_by(country) %>% 
+  filter(mean(lifeExp) > 50) %>% 
+  ggplot(aes(x = year, y = lifeExp, Group = country, color = country)) + geom_line() + facet_wrap(~continent) + labs(title = "Countries that starts with M & mean lifeExp > 50")
+
+df %>% 
+  filter(grepl(country, pattern = "^M") == T) %>%
+  group_by(country) %>% 
+  filter(mean(lifeExp) < 50) %>% 
+  ggplot(aes(x = year, y = lifeExp, Group = country, color = country)) + geom_line() + facet_wrap(~continent) + labs(title = "Countries that starts with M & mean lifeExp < 50")
+
+```
