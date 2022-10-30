@@ -47,7 +47,8 @@ df_unique <- df %>%
 
 data.frame(Country = df$country , year = df$year, 
            Beings_with_b = grepl(df$country, pattern = "^B"),
-           Life_exp_bin = if_else(df$lifeExp > 70, ">70",if_else(df$lifeExp < 50, "<50", "50-70")))
+           Life_exp_bin = if_else(df$lifeExp > 70, ">70",if_else(df$lifeExp < 50, "<50", "50-70"))) %>% 
+  sample_n(20) #Just to show a subset
 ```
 
 
