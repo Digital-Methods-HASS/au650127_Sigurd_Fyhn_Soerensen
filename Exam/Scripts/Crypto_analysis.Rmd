@@ -1,0 +1,105 @@
+---
+title: "Untitled"
+author: "Sigurd Sørensen"
+date: "2023-01-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+```
+
+```{r}
+#load in data
+df <- read_csv("./Data/crypto_data.csv", show_col_types = FALSE)
+
+
+#column_names <- gsub("," , "", colnames(df)) 
+column_names <- gsub("...1","Date",colnames(df))
+column_names <- str_replace_all(column_names, "[[:punct:]]", "")
+column_names<- gsub("[^[:alnum:]]+", "_",column_names)
+
+
+#rename column
+colnames(df) <- column_names
+
+# Get subset of columns
+df <- select_at(df,vars(!starts_with("is")))
+
+#write clean csv
+write_csv(df, "./Data/crypto_data_cleaned.csv")
+```
+
+
+```{r}
+#read in clean csv
+df <- read_csv("./Data/crypto_data_cleaned.csv")
+
+
+
+df_standardized <- mutate_if(df, is.numeric, scale)
+
+
+
+ggplot(df_standardized) + 
+  geom_line(aes(x= Date, y = High_BTCUSD, color = "BTC")) +
+  geom_line(aes(x= Date, y = High_ETHUSD, color = "ETH")) + 
+  geom_line(aes(x = Date, y = High_USDTUSD,color = "USDT")) + 
+  geom_line(aes(x= Date, y = crypto, color = "crypto search"), linetype = "dashed") +
+  scale_color_manual(name = "Coins", values = c("BTC" = "yellow", "ETH" = "blue", "USDT" = "red", "crypto search" = "black")) + 
+  scale_linetype_manual(values = c(1,1,1,2)) +
+  labs(title = "Crypto prices and search freq") +  ylab("Standard deviation")
+
+
+```
+```{r}
+
+pivot_longer(df_standardized,cols= Close_BTCUSD:Close_USDTUSD,
+               names_to = c("Type", "Coin"),
+             names_sep = "_",
+             values_to = "score")
+
+
+pivot_longer(df_standardized,cols= Close_BTCUSD:Close_USDTUSD,
+            names_to = c("Type", "Coin"),
+            names_pattern= "(^[A-Za-z]+)([A-Z]{2,})",
+            values_to = "score")
+
+
+str_extract(colnames(df_standardized)[3], "^[A-Za-z]+_[A-Za-z]+")
+
+grepl("_[A-Z]", colnames(df_standardized)[2])
+
+```
+
+```{r}
+df_long <- pivot_longer(df_standardized, cols= starts_with("High"), names_to = "CoinType", values_to = "High_Price")
+
+
+ggplot(df_long,aes(x = Date, y = High_Price, group = CoinType, color = CoinType, linetype = CoinType)) + geom_line() + 
+  geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq",linetype = "Crypto Search Freq")) +
+  geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq", linetype = "Bitcoin Search Freq")) +
+  scale_color_manual(name = "Type",
+                     labels= c("Bitcoin Search Freq","Crypto Search Freq", "High_BTCUSD","High_ETHUSD", "High_USDTUSD"),
+                     values = c("orange","black", "orange", "blue","aquamarine")) +
+  scale_linetype_manual(name = "Type",
+                        labels= c("Bitcoin Search Freq" ,"Crypto Search Freq", "High_BTCUSD","High_ETHUSD", "High_USDTUSD"),
+                        values = c("Bitcoin Search Freq" = 2,"Crypto Search Freq" = 2, "High_BTCUSD" = 1,"High_ETHUSD" = 1, "High_USDTUSD" =1))
+```
+```{r}
+df_long %>% 
+  filter(CoinType == "High_BTCUSD") %>% 
+  ggplot(aes(x = Date, y = High_Price, color = "Bitcoin Price", linetype = "Bitcoin Price")) + geom_line()+
+  geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq",linetype = "Crypto Search Freq")) +
+  geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq", linetype = "Bitcoin Search Freq")) +
+  scale_color_manual(name = "Type", values = c("Orange", "black", "orange"))+ 
+   scale_linetype_manual(name = "Type", values = c("Bitcoin Price" = 1,"Bitcoin Search Freq" = 2,"Crypto Search Freq" = 2))
+  
+
+```
+

@@ -1,0 +1,92 @@
+---
+title: "Untitled"
+author: "Sigurd Sørensen"
+date: '2022-11-21'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+post <- jsonlite::fromJSON("https://www.reddit.com/r/Denmark/.json")
+
+```
+
+```{r}
+df <- post$data$children$data
+df
+```
+#Method 2
+THIS WORKS! 
+```{r}
+library(crypto2)
+library(tidyverse)
+crypto_list() %>% 
+  filter(name == "Bitcoin" | name == "Dogecoin") %>% 
+  crypto_history()
+
+
+full_list <- crypto_history(coin_list = "BTC")
+
+
+```
+
+
+
+
+ 
+## Method 3
+```{r}
+install.packages("installr")
+library(installr)
+installr::updateR()
+```
+
+
+```{r}
+library(rvest)
+url <- "https://coinmarketcap.com/currencies/bitcoin/historical-data/"
+
+
+read_html(url)
+
+url %>% 
+  read_html() %>% 
+  html_node("table") %>% 
+  html_table()
+
+population <- url %>% 
+  read_html() %>% 
+  html_node("//*[@id="__next"]/div/div[1]/div[2]/div/div[3]/div/div/div[1]/div[2]/table")
+```
+
+
+### MEthood 4
+```{r}
+install.packages(RSelenium)
+
+url<- "https://coinmarketcap.com/currencies/bitcoin/historical-data/"
+
+# RSelenium with Firefox
+rD <- RSelenium::rsDriver(browser="chrome", port=4546L, verbose=F)
+remDr <- rD[["client"]]
+remDr$navigate(url)
+Sys.sleep(4)
+
+# get the page source
+web <- remDr$getPageSource()
+web <- xml2::read_html(web[[1]])
+
+table <- html_table(web) %>%
+  as.data.frame()
+
+# close RSelenium
+remDr$close()
+gc()
+rD$server$stop()
+system("taskkill /im java.exe /f", intern=FALSE, ignore.stdout=FALSE)
+```
+

@@ -1,8 +1,10 @@
 ---
 title: "HW5 - Make Data Move"
-author: ""
+author: ''
 date: "05/10/2020"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -18,10 +20,6 @@ Today, you will load a filtered gapminder dataset -  with a subset of data on gl
 First, start with installing the relevant packages 'tidyverse', 'gganimate', and 'gapminder'.
 
 ```{r libraries, echo = FALSE}
-# install.packages("gganimate")
-# install.packages("gifski")
-# install.packages("av")
-# install.packages("gapminder")
 library(tidyverse)
 library(gganimate)
 library(gifski)
@@ -32,8 +30,19 @@ library(gapminder)
 ## Look at the data and tackle the tasks
 First, see which specific years are actually represented in the dataset and what variables are being recorded for each country. Note that when you run the cell below, Rmarkdown will give you two results - one for each line - that you can flip between.
 ```{r}
+#Basic info on class of variables.
 str(gapminder)
+```
+
+
+```{r}
+#Unique years
 unique(gapminder$year)
+```
+
+
+```{r}
+#Get an intuiton of the data structure
 head(gapminder)
 ```
 

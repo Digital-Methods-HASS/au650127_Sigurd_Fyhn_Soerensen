@@ -1,0 +1,92 @@
+---
+title: "Cul Dat"
+author: "Sigurd Fyhn Sørensen"
+date: "2022-11-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(rstanarm)
+```
+
+## What drives the stock market?
+1) the government and its legislation,
+2) international geopolitics/international transactions, 
+3) supply and demand 
+4) speculation and expectation
+
+
+### My focus:
+
+\- **Crypto Currency:**
+  \- Can google trends drive/explain crypto prices?
+  
+Steps: 
+1) Scrape cryptocurrency data using my script. 
+2) Get google search historic from google trends. 
+3) Apply a statisical analysis pipeline. 
+
+
+
+##### For fun simulation of what data could look like. 
+
+```{r}
+n = 5e2
+
+percentage_increase <- rnorm(n, mean = 0.2, sd = 3)
+
+for (i in (1:n)){
+  if (i == 1){
+    crypto_price <- 80
+  }
+  else{
+    crypto_price[i] <- crypto_price[i-1] + crypto_price[i-1]* (percentage_increase[i]/100)
+  }
+  
+}
+
+plot(crypto_price, type = "l", xlab = "Weeks since coin start")
+```
+
+
+```{r}
+e <- abs(rnorm(n,mean=0,sd=1))
+
+alpha <- 10
+beta <- 0.0001
+theta <- 0.9
+crypto_search <- 0
+for(i in 2:length(e)){
+  crypto_search[i] <- abs(alpha+beta*i+theta*crypto_search[i-1]+e[i])
+}
+
+plot(crypto_search, type = "l", xlab = "Weeks since coin start")
+```
+
+
+```{r}
+crypto_price <- crypto_price + crypto_seach * 2
+
+
+df <- tibble(crypto_price, crypto_search, n = 1:n)
+```
+
+
+```{r}
+
+ggplot(df) + geom_line(aes(y = crypto_price, x = n, col = "red")) + 
+  geom_line(aes(x = n , y = crypto_seach))
+```
+
+
+```{r}
+print(ccf(crypto_price, crypto_seach))
+```
+

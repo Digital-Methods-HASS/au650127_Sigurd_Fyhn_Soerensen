@@ -1,8 +1,10 @@
 ---
-title: "check"
+title: "Portfolio 6"
 author: "Sigurd Fyhn Sørensen"
 date: "2022-10-30"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}

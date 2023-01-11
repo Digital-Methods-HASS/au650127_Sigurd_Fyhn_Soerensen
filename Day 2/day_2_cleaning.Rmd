@@ -1,10 +1,11 @@
 ---
-title: "day2 Kings"
+title: "Portfolio 2"
 author: "Sigurd Sørensen"
-date: '2022-08-31'
+date: "2022-08-31"
 output:
-  pdf_document: default
+  word_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -190,6 +191,7 @@ Gorm den Gamle.
 kings <- str_split(kings,pattern = "\n") 
 ```
 
+We do a bit of cleaning magic.
 ```{r}
 df_kings <- data.frame(Names = kings[[1]][seq(from = 1, to = length(kings[[1]]), by = 3 )], Year = kings[[1]][seq(from = 2, to = length(kings[[1]]), by = 3 )])
 df_kings
@@ -199,14 +201,23 @@ df_kings
 Fix the interviews dataset in OpenRefine enough to answer this question: "Which two months are reported as the most water-deprived/driest by the interviewed farmer households?"
 ```{r}
 df_random <- read_csv("SAFI_openrefine.csv")
-
+```
+```{r}
 df_random_long <- df_random %>% 
-  separate_rows(months_no_water, sep = ";")
+  separate_rows(months_no_water, sep = ";") %>% 
+  filter(months_no_water != "NULL") 
 
-df_random_long <- df_random_long %>% 
-  mutate(months_no_water = gsub('[[:punct:]]',"", df_random_long$months_no_water)) %>% 
-  mutate(months_no_water = gsub('[[:space:]]',"", df_random_long$months_no_water)) 
+#Delete non-alphanumeric.
+df_random_long <- mutate(df_random_long, months_no_water = str_replace_all(df_random_long$months_no_water, "[^[:alnum:]]", ""))
+```
 
+```{r}
+df_random_long$months_no_water
+```
+
+
+
+```{r}
 unique(df_random_long$months_no_water) #Sanity check to see if all is tidy.
 ```
 
@@ -227,7 +238,8 @@ df_aarhus <- read_csv("https://raw.githubusercontent.com/aarhusstadsarkiv/datase
 
 df_aarhus %>% 
   filter(!is.na(erhverv)) %>% 
-  count(erhverv)
+  count(erhverv) %>% 
+  head()
 ```
 The data is still super messy so let us try and clean it up a bit. 
 
@@ -239,7 +251,8 @@ df_aarhus %>%
   mutate(erhverv = str_to_lower(gsub('[[:punct:]]', '', df_aarhus$erhverv))) %>%
   count(erhverv) %>% 
   filter(n > 3) %>% 
-  arrange(desc(n))
+  arrange(desc(n)) %>% 
+  head()
 
 ```
 
