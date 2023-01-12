@@ -12,6 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(tidymodels)
+library(ggpubr)
+library(ggarrange)
+
+library(tidytext)
 ```
 
 ```{r}
@@ -57,14 +61,71 @@ ggplot(df_standardized) +
 
 
 ```
+## Plotting
 ```{r}
-
-pivot_longer(df_standardized,cols= Close_BTCUSD:Close_USDTUSD,
+df_long_volume_std <- pivot_longer(df_standardized,cols= Volume_BTCUSD:Volume_USDTUSD,
                names_to = c("Type", "Coin"),
              names_sep = "_",
-             values_to = "score")
+             values_to = "Volume") %>% 
+  mutate(Coin  = as.factor(Coin))
 
 
+df_long_volume <- pivot_longer(df,cols= Volume_BTCUSD:Volume_USDTUSD,
+               names_to = c("Type", "Coin"),
+             names_sep = "_",
+             values_to = "Volume") %>% 
+  mutate(Coin = as.factor(Coin))
+
+
+p1 <- df_long_volume_std %>% 
+  filter(Coin == "BTCUSD") %>% 
+ggplot(aes(x = Date, y = Volume, color = Coin, group = Coin)) + geom_line() + 
+    geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq"),linetype = "dashed") +
+    geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq"), linetype = "dashed")+
+  labs(title = "BTC & Search Freq BTC + Crypto")+ ylab("Standard Deviations")
+      
+  
+p2 <- df_long_volume_std %>% 
+  filter(Coin == "ETHUSD") %>% 
+ggplot(aes(x = Date, y = Volume, color = Coin, group = Coin)) + geom_line() + 
+    geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq"),linetype = "dashed") +
+    geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq"), linetype = "dashed")+
+  labs(title = "ETH & Search Freq BTC + Crypto")+ ylab("Standard Deviations")
+      
+
+p3 <- df_long_volume_std %>% 
+  filter(Coin == "USDTUSD") %>% 
+ggplot(aes(x = Date, y = Volume, color = Coin, group = Coin)) + geom_line() + 
+    geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq"),linetype = "dashed") +
+    geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq"),  linetype = "dashed")+
+  labs(title = "USDT & Search Freq BTC + Crypto") + ylab("Standard Deviations")
+final_plot <- ggpubr::ggarrange(p1, p2, p3, nrow = 3)
+```
+
+## Save image
+```{r}
+jpeg(file = "./figures/plots of coins and frequency searches.jpeg")
+final_plot
+dev.off()
+```
+
+```{r}
+ggplot(df_long_volume_std, aes(x = Date, y = Volume, color = Coin, group = Coin)) + geom_line()+ 
+    geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq",linetype = "Crypto Search Freq")) +
+    geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq", linetype = "Bitcoin Search Freq")) + 
+    scale_linetype_manual(name = "Type",
+                        labels= c("Bitcoin Search Freq" ,"Crypto Search Freq" ,"Volume_BTCUSD", "Volume_ETHUSD", "Volume_USDTUSD"),values = c("Bitcoin Search Freq" = 2,"Crypto Search Freq" = 2, "Volume_BTCUSD" = 1,"Volume_ETHUSD" = 1, "Volume_USDTUSD" =1)) +
+   
+    scale_color_manual(name = "Type",
+                     labels= c("Bitcoin Search Freq","Volume_BTCUSD","Crypto Search Freq", "Volume_ETHUSD", "Volume_USDTUSD"),
+                     values = c("orange","black", "orange", "blue","aquamarine")) 
+
+
+
+```
+
+
+```{r}
 pivot_longer(df_standardized,cols= Close_BTCUSD:Close_USDTUSD,
             names_to = c("Type", "Coin"),
             names_pattern= "(^[A-Za-z]+)([A-Z]{2,})",
@@ -80,7 +141,6 @@ grepl("_[A-Z]", colnames(df_standardized)[2])
 ```{r}
 df_long <- pivot_longer(df_standardized, cols= starts_with("High"), names_to = "CoinType", values_to = "High_Price")
 
-
 ggplot(df_long,aes(x = Date, y = High_Price, group = CoinType, color = CoinType, linetype = CoinType)) + geom_line() + 
   geom_line(aes(x = Date, y = crypto, color = "Crypto Search Freq",linetype = "Crypto Search Freq")) +
   geom_line(aes(x = Date, y = bitcoin, color = "Bitcoin Search Freq", linetype = "Bitcoin Search Freq")) +
@@ -91,6 +151,7 @@ ggplot(df_long,aes(x = Date, y = High_Price, group = CoinType, color = CoinType,
                         labels= c("Bitcoin Search Freq" ,"Crypto Search Freq", "High_BTCUSD","High_ETHUSD", "High_USDTUSD"),
                         values = c("Bitcoin Search Freq" = 2,"Crypto Search Freq" = 2, "High_BTCUSD" = 1,"High_ETHUSD" = 1, "High_USDTUSD" =1))
 ```
+
 ```{r}
 df_long %>% 
   filter(CoinType == "High_BTCUSD") %>% 
@@ -100,6 +161,139 @@ df_long %>%
   scale_color_manual(name = "Type", values = c("Orange", "black", "orange"))+ 
    scale_linetype_manual(name = "Type", values = c("Bitcoin Price" = 1,"Bitcoin Search Freq" = 2,"Crypto Search Freq" = 2))
   
+```
 
+
+# Analysis
+```{r}
+df_long_model <- df_long %>% 
+  mutate(Coin_spec_search_short = ifelse(CoinType == "High_BTCUSD", BTC, ifelse(CoinType == "High_ETHUSD", ETH, USDT))) %>% 
+  mutate(Coin_spec_search_long = ifelse(CoinType == "High_BTCUSD", bitcoin, ifelse(CoinType == "High_ETHUSD", ethereum, Tether))) %>% 
+  select(Date,High_Price, CoinType, Coin_spec_search_long, Coin_spec_search_short,crypto,crypto_coin, cryptocurrency, crypto_currency )
+
+```
+
+
+```{r}
+?ccf
+ccf(filter(df_long_model, CoinType == "High_BTCUSD")$High_Price, filter(df_long_model, CoinType == "High_BTCUSD")$crypto)
+
+ccf(df_long_model$High_Price, df_long_model$Coin_spec_search_long)
+```
+```{r}
+rec_tidy_pca <<- df_long_model %>%
+    recipe(High_Price~.) %>% # defines the outcome 
+    update_role(Date,CoinType, new_role = "Second Level") %>%  #These variables are not predictors or outcome but we want to keep them. 
+    update_role(Coin_spec_search_long, Coin_spec_search_short, new_role = "no pca") %>% 
+    step_normalize(all_numeric()) %>%
+    step_pca(all_predictors(), threshold = .8) %>% 
+    prep(training = df_long_model, retain = TRUE)
+
+data_model <- juice(rec_tidy_pca)
+```
+
+## Testing Multicoliniareity... 
+```{r} 
+cor.test(df_long_model$crypto_coin, df_long_model$crypto)
+
+cor.test(df_long_model$crypto_coin, df_long_model$cryptocurrency)
+
+
+cor.test(df_long_model$crypto_currency, df_long_model$cryptocurrency)
+
+cor.test(df_long_model$crypto, df_long_model$crypto_currency)
+cor.test(df_long_model$crypto_currency, df_long_model$crypto_coin)
+
+cor.test(df_long_model$crypto, df_long_model$Coin_spec_search_short)
+cor.test(df_long_model$crypto, df_long_model$Coin_spec_search_long)
+
+```
+
+```{r}
+tidied_pca <- tidy(rec_tidy_pca,2)
+tidied_pca
+
+tidied_pca %>%
+  filter(component %in% paste0("PC", 1:10)) %>%
+  mutate(component = fct_inorder(component)) %>%
+  ggplot(aes(value, terms, fill = terms)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~component, nrow = 1) +
+  labs(y = NULL)
+
+tidied_pca %>%
+  filter(component %in% paste0("PC", 1:6)) %>%
+  group_by(component) %>%
+  top_n(8, abs(value)) %>%
+  ungroup() %>%
+  mutate(terms = reorder_within(terms, abs(value), component)) %>%
+  ggplot(aes(abs(value), terms, fill = value > 0)) +
+  geom_col() +
+  facet_wrap(~component, scales = "free_y") +
+  scale_y_reordered() +
+  labs(
+    x = "Absolute value of contribution",
+    y = NULL, fill = "Positive?"
+  )
+
+```
+
+# Hypothesis 1
+```{r}
+
+cross_correlation<- function(df,Coin){
+  temp_df<- df %>% 
+    filter(CoinType == Coin)
+  
+  p1 <- ccf(as.numeric(temp_df$PC1),as.numeric(temp_df$High_Price)) 
+  p2 <- ccf(as.numeric(temp_df$PC2), as.numeric(temp_df$High_Price))
+  p3 <- ccf(as.numeric(temp_df$Coin_spec_search_long),as.numeric(temp_df$High_Price))
+  p4 <- ccf(as.numeric(temp_df$Coin_spec_search_short),as.numeric(temp_df$High_Price))  
+  return(data.frame(PC1 = p1$acf, PC2 = p2$acf, Coin_long = p3$acf, Coin_short =p4$acf))
+} 
+
+
+BTC_ccf <- cross_correlation(data_model, Coin = "High_BTCUSD")
+ETH_ccf <- cross_correlation(data_model, Coin  = "High_ETHUSD")
+USDT_ccf <- cross_correlation(data_model, Coin = "High_USDTUSD")
+
+# results with designates laggs
+BTC_ccf[19:25,]
+ETH_ccf[19:25,]
+USDT_ccf[19:25,]
+
+
+ccf(as.numeric(data_model$Coin_spec_search_long), as.numeric(data_model$High_Price))
+```
+
+# Hypothesis 2
+```{r}
+library(lmerTest)
+df_long$High_Price
+#General linear model 
+m0 <- lm(High_Price ~ PC1 + PC2 + Coin_spec_search_long + Coin_spec_search_short, data = data_model)
+m1 <- lm(High_Price ~ PC1 + PC2 + Coin_spec_search_long + Coin_spec_search_short + lag(High_Price) + lag(Coin_spec_search_long) + lag(Coin_spec_search_short), data = data_model)
+m2 <- lm(High_Price ~ PC1 + PC2 + lag(PC1, n = 1L) + lag(PC1, n = 2L) + lag(PC2, n = 1L) + lag(PC2, n = 2L)  +Coin_spec_search_long + Coin_spec_search_short + lag(High_Price, n = 1L) + lag(Coin_spec_search_long, n = 1L) + lag(Coin_spec_search_short, n = 1L)+ lag(High_Price, n = 2L) + lag(Coin_spec_search_long, n = 2L) + lag(Coin_spec_search_short,n = 2L), data = data_model)
+#Mixed effect linear model
+mx0 <- lmer(High_Price ~ PC1 + PC2 + Coin_spec_search_long + Coin_spec_search_short + (1|CoinType), data = data_model)
+mx1 <- lmer(High_Price ~ PC1 + PC2 + Coin_spec_search_long + Coin_spec_search_short + lag(High_Price) + lag(Coin_spec_search_long) + lag(Coin_spec_search_short) + (1|CoinType),data = data_model)
+mx2 <- lm(High_Price ~ PC1 + PC2 + Coin_spec_search_long + Coin_spec_search_short + lag(High_Price) + lag(Coin_spec_search_long) + lag(Coin_spec_search_short)+ lag(High_Price, n = 2L) + lag(Coin_spec_search_long, n = 2L) + lag(Coin_spec_search_short,n = 2L)+(1 +CoinType), data = data_model)
+
+#Model comparison.
+AIC(m0, m1,m2,mx0, mx1, mx2)
+BIC(m0, m1,m2,mx0,mx1,mx2)
+
+```
+AIC score across models indicates that the general linear model only containing fixed effect and with lag 1 and lag 2 variants of the predictors is the best model.
+
+```{r}
+install.packages("sjPlot")
+library(sjPlot)
+summary(m2)
+
+sjt.lm(m2)
+tab_model(m2)
+sjPlot::plot_model(m2)
+sjt.lm(m2)
 ```
 
